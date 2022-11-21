@@ -14,21 +14,33 @@ class Allocator {
   using reference = T&;
   using const_reference = const T&;
 
-  Allocator() noexcept;
+  Allocator() noexcept = default;
 
-  Allocator(const Allocator& other) noexcept;
+  Allocator(const Allocator& other) noexcept = default;
 
   template <class U>
   Allocator(const Allocator<U>& other) noexcept;
 
-  ~Allocator();
+  ~Allocator() = default;
 
-  pointer allocate(size_type);
+  pointer allocate(size_type mem_size = 1) {
+      return static_cast<pointer>::operator new(mem_size * sizeof(value_type));
+  }
 
-  void deallocate(pointer p, size_type n) noexcept;
+  void deallocate(pointer p, size_type n) noexcept {
+      ::operator delete(p, n);
+  }
 
   //[[nodiscard]] std::allocation_result<T*> allocate_at_least(
   // std::size_t n ); // TODO For extra points
+};
+
+template <typename ValueType>
+struct Node
+{
+    ValueType* value;
+    Node<ValueType>* next;
+    Node<ValueType>* prev;
 };
 
 template <typename ValueType>
@@ -40,49 +52,92 @@ class Deque_iterator {
   using pointer = ValueType*;
   using reference = ValueType&;
 
-  Deque_iterator() noexcept;
+  Deque_iterator() noexcept = default;
 
-  Deque_iterator(const Deque_iterator& other) noexcept;
+  Deque_iterator(const Deque_iterator& other) noexcept : Deque_iterator(other.data) {};
 
-  Deque_iterator& operator=(const Deque_iterator&);
+  Deque_iterator& operator=(const Deque_iterator& other) {
+      data = other.data;
+      return *data;
+  };
 
-  ~Deque_iterator();
+  ~Deque_iterator() = default;
 
   friend void swap(Deque_iterator<ValueType>&, Deque_iterator<ValueType>&);
 
-  friend bool operator==(const Deque_iterator<ValueType>&,
-                         const Deque_iterator<ValueType>&);
-  friend bool operator!=(const Deque_iterator<ValueType>&,
-                         const Deque_iterator<ValueType>&);
+  friend bool operator==(const Deque_iterator<ValueType>& it1, const Deque_iterator<ValueType>& it2) {
+      return it1 == it2;
+  }
+  friend bool operator!=(const Deque_iterator<ValueType>& it1, const Deque_iterator<ValueType>& it2) {
+      return it1 != it2;
+  }
 
-  reference operator*() const;
-  pointer operator->() const;
+  reference operator*() const {
+      return *data
+  }
+  pointer operator->() const {
+      return static_cast<pointer>data->value;
+  }
 
-  Deque_iterator& operator++();
-  Deque_iterator operator++(int);
+  Deque_iterator& operator++() {
+      data->value++;
+      return *data;
+  };
+  Deque_iterator operator++(int) {
+      data->value++;
+      return *data;
+  }
 
-  Deque_iterator& operator--();
-  Deque_iterator operator--(int);
+  Deque_iterator& operator--() {
+      data->value--;
+      return *data;
+  }
+  Deque_iterator operator--(int) {
+      data->value--;
+      return *data;
+  }
 
-  Deque_iterator operator+(const difference_type&) const;
-  Deque_iterator& operator+=(const difference_type&);
+  Deque_iterator operator+(const difference_type& other) const {
+      data->value = data->value + other;
+      return *data;
+  }
+  Deque_iterator& operator+=(const difference_type& other) {
+      data->value += other;
+      return *data;
+  }
 
-  Deque_iterator operator-(const difference_type&) const;
-  Deque_iterator& operator-=(const difference_type&);
+  Deque_iterator operator-(const difference_type& other) const {
+      data->value = data->value - other;
+      return *data;
+  }
+  Deque_iterator& operator-=(const difference_type&) {
+      data->value -= other;
+      return *data;
+  }
 
-  difference_type operator-(const Deque_iterator&) const;
+  difference_type operator-(const Deque_iterator& other) const;
 
   reference operator[](const difference_type&);
 
-  friend bool operator<(const Deque_iterator<ValueType>&,
-                        const Deque_iterator<ValueType>&);
-  friend bool operator<=(const Deque_iterator<ValueType>&,
-                         const Deque_iterator<ValueType>&);
-  friend bool operator>(const Deque_iterator<ValueType>&,
-                        const Deque_iterator<ValueType>&);
-  friend bool operator>=(const Deque_iterator<ValueType>&,
-                         const Deque_iterator<ValueType>&);
+  friend bool operator<(const Deque_iterator<ValueType>& it1,
+      const Deque_iterator<ValueType>& it2) {
+      return it1 < it2;
+  }
+  friend bool operator<=(const Deque_iterator<ValueType>& it1,
+      const Deque_iterator<ValueType>& it2) {
+      return it1 <= it2;
+  }
+  friend bool operator>(const Deque_iterator<ValueType>& it1,
+      const Deque_iterator<ValueType>& it2) {
+      return it1 > it2;
+  }
+  friend bool operator>=(const Deque_iterator<ValueType>& it1,
+      const Deque_iterator<ValueType>& it2) {
+      return it1 >= it2;
+  }
   // operator<=> will be handy
+private:
+    Node<ValueType>* data;
 };
 
 template <typename ValueType>
