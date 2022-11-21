@@ -38,7 +38,7 @@ class Allocator {
 template <typename ValueType>
 struct Node
 {
-    ValueType* value;
+    ValueType value;
     Node<ValueType>* next;
     Node<ValueType>* prev;
 };
