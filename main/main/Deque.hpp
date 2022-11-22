@@ -54,7 +54,9 @@ class Deque_iterator {
 
   Deque_iterator() noexcept = default;
 
-  Deque_iterator(const Deque_iterator& other) noexcept : Deque_iterator(other.data) {};
+  Deque_iterator(const Deque_iterator& other) noexcept {
+      data = other.data;
+  };
 
   Deque_iterator& operator=(const Deque_iterator& other) {
       data = other.data;
@@ -108,7 +110,8 @@ class Deque_iterator {
   }
 
   reference operator*() const {
-      return *data;
+      reference ref = *data;
+      return ref;
   }
   pointer operator->() const {
       return static_cast<pointer>(&data->value);
@@ -133,14 +136,7 @@ class Deque_iterator {
   }
 
   Deque_iterator operator+(const difference_type& other) const {
-      while (other > 0) {
-          data = data->next;
-          (data->next == nullptr) {
-              break;
-          }
-          other--;
-      }
-      return *data;
+      data += other;
   }
   Deque_iterator& operator+=(const difference_type& other) {
       while (other > 0) {
@@ -154,14 +150,7 @@ class Deque_iterator {
   }
 
   Deque_iterator operator-(const difference_type& other) const {
-      while (other > 0) {
-          data = data->prev;
-          (data->prev == nullptr) {
-              break;
-          }
-          other--;
-      }
-      return *data;
+      data -= other;
   }
   Deque_iterator& operator-=(const difference_type& other) {
       while (other > 0) {
@@ -174,7 +163,25 @@ class Deque_iterator {
       return *data;
   }
 
-  difference_type operator-(const Deque_iterator& other) const;
+  difference_type operator-(const Deque_iterator& other) const {
+      difference_type count = 0;
+
+      if (data < other.data) {
+          while (data->value != other.data->value) {
+              data = data->next;
+              count++;
+          }
+          return count;
+      }
+      else if (data > other.data) {
+          while (data->value != other.data->value) {
+              data = data->prev;
+              count++;
+          }
+          return count;
+      }
+      return count;
+  }
 
   reference operator[](const difference_type& other) {
       if (other >= 0) {
@@ -195,6 +202,8 @@ class Deque_iterator {
               other++;
           }
       }
+      reference ref = *data;
+      return ref;
   }
 
   friend bool operator<(const Deque_iterator<ValueType>& it1,
@@ -248,59 +257,228 @@ private:
 
 template <typename ValueType>
 class Deque_const_iterator {
-  // Shouldn't give non const references on value
- public:
-  using iterator_category = std::random_access_iterator_tag;
-  using value_type = ValueType;
-  using difference_type = std::ptrdiff_t;
-  using pointer = const ValueType*;
-  using reference = const ValueType&;
+    // Shouldn't give non const references on value
+public:
+    using iterator_category = std::random_access_iterator_tag;
+    using value_type = ValueType;
+    using difference_type = std::ptrdiff_t;
+    using pointer = const ValueType*;
+    using reference = const ValueType&;
 
-  Deque_const_iterator() noexcept;
-  Deque_const_iterator(const Deque_const_iterator&) noexcept;
-  Deque_const_iterator(const Deque_iterator<ValueType>&) noexcept;
+    Deque_const_iterator() noexcept = default;
+    Deque_const_iterator(const Deque_const_iterator& other) noexcept {
+        Node<Deque_const_iterator> const_it(other);
+        data = const_it;
+    }
+    Deque_const_iterator(const Deque_iterator<ValueType>& other) noexcept {
+        Node<Deque_iterator<ValueType>> it(other);
+        data = it;
+    }
 
-  Deque_const_iterator& operator=(const Deque_const_iterator&);
-  Deque_const_iterator& operator=(const Deque_iterator<ValueType>&);
+    Deque_const_iterator& operator=(const Deque_const_iterator& other) {
+        data = other.data;
+        return *data;
+    }
+    Deque_const_iterator& operator=(const Deque_iterator<ValueType>& other) {
+        Node<Deque_iterator<ValueType>> it(other);
+        data = it;
+        return *data;
+    }
 
-  ~Deque_const_iterator();
+    ~Deque_const_iterator() = default;
 
-  friend void swap(Deque_const_iterator<ValueType>&,
-                   Deque_const_iterator<ValueType>&);
+    friend void swap(Deque_const_iterator<ValueType>& it1,
+        Deque_const_iterator<ValueType>& it2) {
+        Deque_const_iterator<ValueType> itTemp = it2;
+        it2 = it1;
+        it1 = itTemp;
+        delete itTemp;
+    }
 
-  friend bool operator==(const Deque_const_iterator<ValueType>&,
-                         const Deque_const_iterator<ValueType>&);
-  friend bool operator!=(const Deque_const_iterator<ValueType>&,
-                         const Deque_const_iterator<ValueType>&);
+    friend bool operator==(const Deque_const_iterator<ValueType>& it1,
+        const Deque_const_iterator<ValueType>& it2) {
+        Node<Deque_const_iterator<ValueType>> node1(it1);
+        Node<Deque_const_iterator<ValueType>> node2(it2);
+        while (node1.next != nullptr && node2.next != nullptr) {
+            if (node1.value == node2.value) {
+                node1 = node1.next;
+                node2 = node2.next;
+            }
+            else {
+                return false;
+            }
+            if ((node1 == nullptr && node2 != nullptr) ||
+                (node1 != nullptr && node2 == nullptr)) {
+                return false;
+            }
+        }
+        return true;
+    }
+    friend bool operator!=(const Deque_const_iterator<ValueType>& it1,
+        const Deque_const_iterator<ValueType>& it2) {
+        Node<Deque_const_iterator<ValueType>> node1(it1);
+        Node<Deque_const_iterator<ValueType>> node2(it2);
+        while (node1.next != nullptr && node2.next != nullptr) {
+            if (node1.value == node2.value) {
+                node1 = node1.next;
+                node2 = node2.next;
+            }
+            else {
+                return true;
+            }
+            if ((node1 == nullptr && node2 != nullptr) ||
+                (node1 != nullptr && node2 == nullptr)) {
+                return true;
+            }
+        }
+        return false;
 
-  reference operator*() const;
-  pointer operator->() const;
+    }
 
-  Deque_const_iterator& operator++();
-  Deque_const_iterator operator++(int);
+    reference operator*() const {
+        reference ref = *data;
+        return ref;
+    }
+    pointer operator->() const {
+        return static_cast<pointer>(&data->value);
+    }
 
-  Deque_const_iterator& operator--();
-  Deque_const_iterator operator--(int);
+    Deque_const_iterator& operator++() {
+        data = data->next;
+        return *data;
+    }
+    Deque_const_iterator operator++(int) {
+        data = data->next;
+        return *data;
+    }
 
-  Deque_const_iterator operator+(const difference_type&) const;
-  Deque_const_iterator& operator+=(const difference_type&);
+    Deque_const_iterator& operator--() {
+        data = data->prev;
+        return *data;
+    }
+    Deque_const_iterator operator--(int) {
+        data = data->prev;
+        return *data;
+    }
 
-  Deque_const_iterator operator-(const difference_type&) const;
-  Deque_const_iterator& operator-=(const difference_type&);
+    Deque_const_iterator operator+(const difference_type& other) const {
+        data += other;
+    }
+    Deque_const_iterator& operator+=(const difference_type& other) {
+        while (other > 0) {
+            data = data->next;
+            (data->next == nullptr) {
+                break;
+            }
+            other--;
+        }
+        return *data;
+    }
 
-  difference_type operator-(const Deque_const_iterator&) const;
+    Deque_const_iterator operator-(const difference_type& other) const {
+        data -= other;
+    }
+    Deque_const_iterator& operator-=(const difference_type& other) {
+        while (other > 0) {
+            data = data->prev;
+            (data->prev == nullptr) {
+                break;
+            }
+            other--;
+        }
+        return *data;
+    }
 
-  reference operator[](const difference_type&);
+    difference_type operator-(const Deque_const_iterator&) const {
+        difference_type count = 0;
 
-  friend bool operator<(const Deque_const_iterator<ValueType>&,
-                        const Deque_const_iterator<ValueType>&);
-  friend bool operator<=(const Deque_const_iterator<ValueType>&,
-                         const Deque_const_iterator<ValueType>&);
-  friend bool operator>(const Deque_const_iterator<ValueType>&,
-                        const Deque_const_iterator<ValueType>&);
-  friend bool operator>=(const Deque_const_iterator<ValueType>&,
-                         const Deque_const_iterator<ValueType>&);
+        if (data < other.data) {
+            while (data->value != other.data->value) {
+                data = data->next;
+                count++;
+            }
+            return count;
+        }
+        else if (data > other.data) {
+            while (data->value != other.data->value) {
+                data = data->prev;
+                count++;
+            }
+            return count;
+        }
+        return count;
+    }
+
+  reference operator[](const difference_type&) {
+      if (other >= 0) {
+          while (other > 0) {
+              data = data->next;
+              (data->next == nullptr) {
+                  break;
+              }
+              other--;
+          }
+      }
+      else {
+          while (other < 0) {
+              data = data->prev;
+              (data->prev == nullptr) {
+                  break;
+              }
+              other++;
+          }
+      }
+      reference ref = *data;
+      return ref;
+  }
+
+  friend bool operator<(const Deque_const_iterator<ValueType>& it1,
+      const Deque_const_iterator<ValueType>& it2) {
+      Node<Deque_iterator<ValueType>> node1(it1);
+      Node<Deque_iterator<ValueType>> node2(it2);
+      if (it1 == it2) return false;
+      while (node1 != nullptr) {
+          node1 = node1.next;
+          if (node1.value == node2.value) return true;
+      }
+      return false;
+  }
+  friend bool operator<=(const Deque_const_iterator<ValueType>& it1,
+      const Deque_const_iterator<ValueType>& it2) {
+      Node<Deque_iterator<ValueType>> node1(it1);
+      Node<Deque_iterator<ValueType>> node2(it2);
+      if (it1 == it2) return true;
+      while (node1 != nullptr) {
+          node1 = node1.next;
+          if (node1.value == node2.value) return true;
+      }
+      return false;
+  }
+  friend bool operator>(const Deque_const_iterator<ValueType>& it1,
+      const Deque_const_iterator<ValueType>& it2) {
+      Node<Deque_iterator<ValueType>> node1(it1);
+      Node<Deque_iterator<ValueType>> node2(it2);
+      if (it1 == it2) return false;
+      while (node2 != nullptr) {
+          node2 = node2.prev;
+          if (node1.value == node2.value) return true;
+      }
+      return false;
+  }
+  friend bool operator>=(const Deque_const_iterator<ValueType>& it1,
+      const Deque_const_iterator<ValueType>& it2) {
+      Node<Deque_iterator<ValueType>> node1(it1);
+      Node<Deque_iterator<ValueType>> node2(it2);
+      if (it1 == it2) return true;
+      while (node2 != nullptr) {
+          node2 = node2.prev;
+          if (node1.value == node2.value) return true;
+      }
+      return false;
+  }
   // operator<=> will be handy
+private:
+    Node<ValueType>* data;
 };
 
 template <class Iter>
