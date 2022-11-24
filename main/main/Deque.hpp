@@ -498,9 +498,11 @@ class Deque_reverse_iterator {
   using pointer = typename std::iterator_traits<Iter>::pointer;
   using reference = typename std::iterator_traits<Iter>::reference;
 
-  constexpr Deque_reverse_iterator();
+  constexpr Deque_reverse_iterator() = default;
 
-  constexpr explicit Deque_reverse_iterator(iterator_type x);
+  constexpr explicit Deque_reverse_iterator(iterator_type x) {
+      data = x;
+  }
 
   template <class U>
   constexpr Deque_reverse_iterator(const Deque_reverse_iterator<U>& other);
@@ -510,47 +512,176 @@ class Deque_reverse_iterator {
 
   iterator_type base() const;
 
-  reference operator*() const;
+  reference operator*() const {
+      reference ref = *data;
+      return ref;
+  }
 
-  pointer operator->() const;
+  pointer operator->() const {
+      return static_cast<pointer>(&data->value);
+  }
 
-  reference operator[](difference_type n);
+  reference operator[](difference_type n) {
+      if (n >= 0) {
+          while (n > 0) {
+              data = data->prev;
+              if (data->prev == nullptr) {
+                  break;
+              }
+              n--;
+          }
+      } else {
+          while (n < 0) {
+              data = data->next;
+              if (data->next == nullptr) {
+                  break;
+              }
+              n++;
+          }
+      }
+      reference ref = *data;
+      return ref;
+  }
 
-  Deque_reverse_iterator& operator++();
-  Deque_reverse_iterator operator++(int);
+  Deque_reverse_iterator& operator++() {
+      data = data->prev;
+      return *data;
+  }
+  Deque_reverse_iterator operator++(int) {
+      data = data->prev;
+      return *data;
+  }
 
-  Deque_reverse_iterator& operator--();
-  Deque_reverse_iterator operator--(int);
+  Deque_reverse_iterator& operator--() {
+      data = data->next;
+      return *data;
+  }
+  Deque_reverse_iterator operator--(int) {
+      data = data->next;
+      return *data;
+  }
 
-  Deque_reverse_iterator operator+(difference_type n) const;
-  Deque_reverse_iterator& operator+=(difference_type n);
+  Deque_reverse_iterator operator+(difference_type n) const {
+      data += n;
+  }
+  Deque_reverse_iterator& operator+=(difference_type n) {
+      while (n > 0) {
+          data = data->prev;
+          if (data->prev == nullptr) {
+              break;
+          }
+          n--;
+      }
+      return *data;
+  }
 
-  Deque_reverse_iterator operator-(difference_type n) const;
-  Deque_reverse_iterator& operator-=(difference_type n);
+  Deque_reverse_iterator operator-(difference_type n) const {
+      data -= n;
+  }
+  Deque_reverse_iterator& operator-=(difference_type n) {
+      while (n > 0) {
+          data = data->next;
+          if (data->next == nullptr) {
+              break;
+          }
+          n--;
+      }
+      return *data;
+  }
 
   template <class Iterator1, class Iterator2>
   friend bool operator==(const Deque_reverse_iterator<Iterator1>& lhs,
-                         const Deque_reverse_iterator<Iterator2>& rhs);
+      const Deque_reverse_iterator<Iterator2>& rhs) {
+      Node<Deque_reverse_iterator<Iterator1>> node1(lhs);
+      Node<Deque_reverse_iterator<Iterator2>> node2(rhs);
+      while (node1.next != nullptr && node2.next != nullptr) {
+          if (node1.value == node2.value) {
+              node1 = node1.prev;
+              node2 = node2.prev;
+          }
+          else {
+              return false;
+          }
+          if ((node1 == nullptr && node2 != nullptr) ||
+              (node1 != nullptr && node2 == nullptr)) {
+              return false;
+          }
+      }
+      return true;
+  }
 
   template <class Iterator1, class Iterator2>
   friend bool operator!=(const Deque_reverse_iterator<Iterator1>& lhs,
-                         const Deque_reverse_iterator<Iterator2>& rhs);
+      const Deque_reverse_iterator<Iterator2>& rhs) {
+      Node<Deque_reverse_iterator<Iterator1>> node1(lhs);
+      Node<Deque_reverse_iterator<Iterator2>> node2(rhs);
+      while (node1.next != nullptr && node2.next != nullptr) {
+          if (node1.value == node2.value) {
+              node1 = node1.prev;
+              node2 = node2.prev;
+          }
+          else {
+              return true;
+          }
+          if ((node1 == nullptr && node2 != nullptr) ||
+              (node1 != nullptr && node2 == nullptr)) {
+              return true;
+          }
+      }
+      return false;
+  }
 
   template <class Iterator1, class Iterator2>
   friend bool operator>(const Deque_reverse_iterator<Iterator1>& lhs,
-                        const Deque_reverse_iterator<Iterator2>& rhs);
+      const Deque_reverse_iterator<Iterator2>& rhs) {
+      Node<Deque_reverse_iterator<Iterator1>> node1(lhs);
+      Node<Deque_reverse_iterator<Iterator2>> node2(rhs);
+      if (lhs == rhs) return false;
+      while (node2 != nullptr) {
+          node2 = node2.next;
+          if (node1.value == node2.value) return true;
+      }
+      return false;
+  }
 
   template <class Iterator1, class Iterator2>
   friend bool operator<(const Deque_reverse_iterator<Iterator1>& lhs,
-                        const Deque_reverse_iterator<Iterator2>& rhs);
+      const Deque_reverse_iterator<Iterator2>& rhs) {
+      Node<Deque_reverse_iterator<Iterator1>> node1(lhs);
+      Node<Deque_reverse_iterator<Iterator2>> node2(rhs);
+      if (lhs == rhs) return false;
+      while (node1 != nullptr) {
+          node1 = node1.prev;
+          if (node1.value == node2.value) return true;
+      }
+      return false;
+  }
 
   template <class Iterator1, class Iterator2>
   friend bool operator<=(const Deque_reverse_iterator<Iterator1>& lhs,
-                         const Deque_reverse_iterator<Iterator2>& rhs);
+      const Deque_reverse_iterator<Iterator2>& rhs) {
+      Node<Deque_reverse_iterator<Iterator1>> node1(lhs);
+      Node<Deque_reverse_iterator<Iterator2>> node2(lhs);
+      if (lhs == rhs) return true;
+      while (node1 != nullptr) {
+          node1 = node1.prev;
+          if (node1.value == node2.value) return true;
+      }
+      return false;
+  }
 
   template <class Iterator1, class Iterator2>
   friend bool operator>=(const Deque_reverse_iterator<Iterator1>& lhs,
-                         const Deque_reverse_iterator<Iterator2>& rhs);
+      const Deque_reverse_iterator<Iterator2>& rhs) {
+      Node<Deque_reverse_iterator<Iterator1>> node1(lhs);
+      Node<Deque_reverse_iterator<Iterator2>> node2(rhs);
+      if (lhs == rhs) return true;
+      while (node2 != nullptr) {
+          node2 = node2.next;
+          if (node1.value == node2.value) return true;
+      }
+      return false;
+  }
 
   template <class IterT>
   friend Deque_reverse_iterator<IterT> operator+(
@@ -569,6 +700,8 @@ class Deque_reverse_iterator {
   // template<std::indirectly_swappable<Iter> Iter2>
   // friend constexpr void iter_swap(const reverse_iterator& x, const
   // std::reverse_iterator<Iter2>& y); // For extra points
+private:
+    Node<iterator_type>* data;
 };
 
 template <class Iter>
