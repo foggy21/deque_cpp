@@ -709,6 +709,9 @@ Deque_reverse_iterator<Iter> make_reverse_iterator(Iter i);
 
 template <typename T, typename Allocator = Allocator<T>>
 class Deque {
+private:
+    Node<T>* head;
+    std::size_t size;
  public:
   using value_type = T;
   using allocator_type = Allocator;
@@ -797,13 +800,31 @@ class Deque {
   Deque(std::initializer_list<T> init, const Allocator& alloc = Allocator());
 
   /// @brief Destructs the deque.
-  ~Deque();
+  ~Deque() = default;
 
   /// @brief Copy assignment operator. Replaces the contents with a copy of the
   /// contents of other.
   /// @param other another container to use as data source
   /// @return *this
-  Deque& operator=(const Deque& other);
+  Deque& operator=(const Deque& other) {
+      if (this == &other)
+          return *this;
+      if (!other.head)
+          return *this;
+      head = new Node<T>(other.head->value);
+      Node<T>* temp = other.head->next;
+      Node<T>* pointNew = 0;
+      Node<T>* pointOld = head;
+      while (temp)
+      {
+          pointNew = new Node<T>(temp->value);
+          pointNew->prev = pointOld;
+          pointOld->next = pointNew;
+          pointOld = pointNew;
+          temp = temp->next;
+      }
+      return *this;
+  }
 
   /**
    * Move assignment operator.
@@ -961,7 +982,9 @@ class Deque {
 
   /// @brief Checks if the container has no elements
   /// @return true if the container is empty, false otherwise
-  bool empty() const noexcept;
+  bool empty() const noexcept {
+      return size == 0;
+  }
 
   /// @brief Returns the number of elements in the container
   /// @return The number of elements in the container.
@@ -1042,12 +1065,34 @@ class Deque {
   /// @brief Appends the given element value to the end of the container.
   /// The new element is initialized as a copy of value.
   /// @param value the value of the element to append
-  void push_back(const T& value);
+  void push_back(const T& value) {
+      size++;
+      if (head != nullptr) {
+          Node<T&&> temp = new Node<T&&>(value);
+          temp.next = head;
+          head->prev = temp;
+          head = temp;
+      }
+      else {
+          head = new Node<T&&>(value);
+      }
+  }
 
   /// @brief Appends the given element value to the end of the container.
   /// Value is moved into the new element.
   /// @param value the value of the element to append
-  void push_back(T&& value);
+  void push_back(T&& value) {
+      size++;
+      if (head != nullptr) {
+          Node<T&&> temp = new Node<T&&>(value);
+          temp.next = head;
+          head->prev = temp;
+          head = temp;
+      }
+      else {
+          head = new Node<T&&>(value);
+      }
+  }
 
   /// @brief Appends a new element to the end of the container.
   /// @param ...args arguments to forward to the constructor of the element
@@ -1073,7 +1118,15 @@ class Deque {
   reference emplace_front(Args&&... args);
 
   /// @brief Removes the first element of the container.
-  void pop_front();
+  void pop_front() {
+      if (head) {
+          T tempVal = head->value;
+          Node<T>* pointHead = head;
+          head = pointHead->next;
+          delete[] pointHead;
+          size--;
+      }
+  }
 
   /// @brief Resizes the container to contain count elements.
   /// If the current size is greater than count, the container is reduced to its
