@@ -24,7 +24,7 @@ class Allocator {
   ~Allocator() = default;
 
   pointer allocate(size_type mem_size = 1) {
-      return static_cast<pointer>::operator new(mem_size * sizeof(value_type));
+      return static_cast<pointer>(operator new(mem_size * sizeof(value_type)));
   }
 
   void deallocate(pointer p, size_type n) noexcept {
@@ -139,12 +139,13 @@ class Deque_iterator {
       data += other;
   }
   Deque_iterator& operator+=(const difference_type& other) {
-      while (other > 0) {
+      int count = static_cast<int>(other);
+      while (count > 0) {
           data = data->next;
-          (data->next == nullptr) {
+          if (data->next == nullptr) {
               break;
           }
-          other--;
+          count--;
       }
       return *data;
   }
@@ -153,12 +154,13 @@ class Deque_iterator {
       data -= other;
   }
   Deque_iterator& operator-=(const difference_type& other) {
-      while (other > 0) {
+      int count = static_cast<int>(other);
+      while (count > 0) {
           data = data->prev;
-          (data->prev == nullptr) {
+          if (data->prev == nullptr) {
               break;
           }
-          other--;
+          count--;
       }
       return *data;
   }
@@ -184,22 +186,23 @@ class Deque_iterator {
   }
 
   reference operator[](const difference_type& other) {
-      if (other >= 0) {
+      int count = static_cast<int>(other);
+      if (count >= 0) {
           while (other > 0) {
               data = data->next;
-              (data->next == nullptr) {
+              if (data->next == nullptr) {
                   break;
               }
-              other--;
+              count--;
           }
       }
       else {
-          while (other < 0) {
+          while (count < 0) {
               data = data->prev;
-              (data->prev == nullptr) {
+              if (data->prev == nullptr) {
                   break;
               }
-              other++;
+              count++;
           }
       }
       reference ref = *data;
@@ -365,12 +368,13 @@ public:
         data += other;
     }
     Deque_const_iterator& operator+=(const difference_type& other) {
-        while (other > 0) {
+        int count = other;
+        while (count > 0) {
             data = data->next;
-            (data->next == nullptr) {
+            if (data->next == nullptr) {
                 break;
             }
-            other--;
+            count--;
         }
         return *data;
     }
@@ -379,17 +383,18 @@ public:
         data -= other;
     }
     Deque_const_iterator& operator-=(const difference_type& other) {
-        while (other > 0) {
+        int count = other;
+        while (count > 0) {
             data = data->prev;
-            (data->prev == nullptr) {
+            if (data->prev == nullptr) {
                 break;
             }
-            other--;
+            count--;
         }
         return *data;
     }
 
-    difference_type operator-(const Deque_const_iterator&) const {
+    difference_type operator-(const Deque_const_iterator& other) const {
         difference_type count = 0;
 
         if (data < other.data) {
@@ -409,23 +414,24 @@ public:
         return count;
     }
 
-  reference operator[](const difference_type&) {
-      if (other >= 0) {
-          while (other > 0) {
+  reference operator[](const difference_type& other) {
+      int count = other;
+      if (count >= 0) {
+          while (count > 0) {
               data = data->next;
-              (data->next == nullptr) {
+              if (data->next == nullptr) {
                   break;
               }
-              other--;
+              count--;
           }
       }
       else {
-          while (other < 0) {
+          while (count < 0) {
               data = data->prev;
-              (data->prev == nullptr) {
+              if (data->prev == nullptr) {
                   break;
               }
-              other++;
+              count++;
           }
       }
       reference ref = *data;
