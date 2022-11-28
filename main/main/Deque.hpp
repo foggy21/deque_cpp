@@ -1,6 +1,8 @@
 #pragma once
 #include <iterator>
 #include <memory>
+#include <stdexcept>
+#include <utility>
 
 namespace fefu_laboratory_two {
 template <typename T>
@@ -42,9 +44,9 @@ struct Node
     Node<ValueType>* next;
     Node<ValueType>* prev;
 
-    Node(Node<ValueType>* prev, ValueType value, Node<ValueType> next) {
-        this->prev = prev;
-        this->next = next;
+    Node(ValueType value) {
+        this->prev = nullptr;
+        this->next = nullptr;
         this->value = value;
     }
 };
@@ -790,11 +792,6 @@ Deque_reverse_iterator<Iter> make_reverse_iterator(Iter i) {
 
 template <typename T, typename Allocator = Allocator<T>>
 class Deque {
-private:
-    Node<T>* head;
-    Node<T>* tail;
-    Node<T> nodes[];
-    std::size_t size;
  public:
   using value_type = T;
   using allocator_type = Allocator;
@@ -822,15 +819,21 @@ private:
   /// @param count the size of the container
   /// @param value the value to initialize elements of the container with
   /// @param alloc allocator to use for all memory allocations of this container
-  Deque(size_type count, const T& value, const Allocator& alloc = Allocator()) {
-     
+  Deque(size_type count, const T& value, const Allocator& alloc = Allocator()) : Allocator(alloc) {
+      for (size_type iter = 0; iter < count; ++iter) {
+          this->push_front(value);
+     }
   }
 
   /// @brief Constructs the container with count default-inserted instances of
   /// T. No copies are made.
   /// @param count the size of the container
   /// @param alloc allocator to use for all memory allocations of this container
-  explicit Deque(size_type count, const Allocator& alloc = Allocator());
+  explicit Deque(size_type count, const Allocator& alloc = Allocator()) : Allocator(alloc) {
+      for (size_type iter = 0; iter < count; ++iter) {
+          this->push_front(T{});
+      }
+  }
 
   /// @brief Constructs the container with the contents of the range [first,
   /// last).
@@ -838,20 +841,32 @@ private:
   /// @param first, last 	the range to copy the elements from
   /// @param alloc allocator to use for all memory allocations of this container
   template <class InputIt>
-  Deque(InputIt first, InputIt last, const Allocator& alloc = Allocator());
+  Deque(InputIt first, InputIt last, const Allocator& alloc = Allocator()) : Allocator(alloc) {
+      for (auto iter = first; iter != last; iter++) {
+          this->push_front(*it);
+      }
+  }
 
   /// @brief Copy constructor. Constructs the container with the copy of the
   /// contents of other.
   /// @param other another container to be used as source to initialize the
   /// elements of the container with
-  Deque(const Deque& other);
+  Deque(const Deque& other) {
+      for (Node<T>* iter = other.head; iter != nullptr; iter++) {
+          this->push_front(iter->value);
+      }
+  }
 
   /// @brief Constructs the container with the copy of the contents of other,
   /// using alloc as the allocator.
   /// @param other another container to be used as source to initialize the
   /// elements of the container with
   /// @param alloc allocator to use for all memory allocations of this container
-  Deque(const Deque& other, const Allocator& alloc);
+  Deque(const Deque& other, const Allocator& alloc) : Allocator(alloc) {
+      for (Node<T>* iter = other.head; iter != nullptr; iter++) {
+          this->push_front(iter->value);
+      }
+  }
 
   /**
    * @brief Move constructor.
@@ -863,7 +878,9 @@ private:
    * @param other another container to be used as source to initialize the
    * elements of the container with
    */
-  Deque(Deque&& other);
+  Deque(Deque&& other) {
+      swap(other);
+  }
 
   /**
    * @brief Allocator-extended move constructor.
@@ -875,14 +892,20 @@ private:
    * elements of the container with
    * @param alloc allocator to use for all memory allocations of this container
    */
-  Deque(Deque&& other, const Allocator& alloc);
+  Deque(Deque&& other, const Allocator& alloc) : Allocator(alloc) {
+      swap(other);
+  }
 
   /// @brief Constructs the container with the contents of the initializer list
   /// init.
   /// @param init initializer list to initialize the elements of the container
   /// with
   /// @param alloc allocator to use for all memory allocations of this container
-  Deque(std::initializer_list<T> init, const Allocator& alloc = Allocator());
+  Deque(std::initializer_list<T> init, const Allocator& alloc = Allocator()) : Allocator(alloc) {
+      for (auto iter = init.begin(); iter != init.end(); ++iter) {
+          this->push_front(*iter);
+      }
+  }
 
   /// @brief Destructs the deque.
   ~Deque() = default;
@@ -894,15 +917,13 @@ private:
   Deque& operator=(const Deque& other) {
       if (this == &other)
           return *this;
-      if (!other.head)
-          return *this;
-      head = new Node<T>(other.head->value);
+      this->head = new Node<T>(other.head);
       Node<T>* temp = other.head->next;
-      Node<T>* pointNew = 0;
+      Node<T>* pointNew = nullptr;
       Node<T>* pointOld = head;
       while (temp)
       {
-          pointNew = new Node<T>(temp->value);
+          pointNew->value = new Node<T>(temp->value);
           pointNew->prev = pointOld;
           pointOld->next = pointNew;
           pointOld = pointNew;
@@ -921,18 +942,30 @@ private:
    * @param other another container to use as data source
    * @return *this
    */
-  Deque& operator=(Deque&& other);
+  Deque& operator=(Deque&& other) {
+      Deque temp(std::move(other));
+      std::swap(*this, other);
+      return *this;
+  }
 
   /// @brief Replaces the contents with those identified by initializer list
   /// ilist.
   /// @param ilist
   /// @return this
-  Deque& operator=(std::initializer_list<T> ilist);
+  Deque& operator=(std::initializer_list<T> ilist) {
+      for (auto iter = ilist.begin(); iter < ilist.end(); iter++) {
+          this->push_front(*iter);
+      }
+  }
 
   /// @brief Replaces the contents with count copies of value
   /// @param count
   /// @param value
-  void assign(size_type count, const T& value);
+  void assign(size_type count, const T& value) {
+      for (size_type iter = 0; iter < count; iter++) {
+          this->push_front(value);
+      }
+  }
 
   /// @brief Replaces the contents with copies of those in the range [first,
   /// last).
@@ -940,16 +973,26 @@ private:
   /// @param first
   /// @param last
   template <class InputIt>
-  void assign(InputIt first, InputIt last);
+  void assign(InputIt first, InputIt last) {
+      for (auto iter = first; iter != last; iter++) {
+          this->push_front(*iter);
+      }
+  }
 
   /// @brief Replaces the contents with the elements from the initializer list
   /// ilis
   /// @param ilist
-  void assign(std::initializer_list<T> ilist);
+  void assign(std::initializer_list<T> ilist) {
+      for (size_type iter = ilist.begin(); iter != ilist.end(); iter++) {
+          this->push_front(*iter);
+      }
+  }
 
   /// @brief Returns the allocator associated with the container.
   /// @return The associated allocator.
-  allocator_type get_allocator() const noexcept;
+  allocator_type get_allocator() const noexcept {
+      return alloc;
+  }
 
   /// ELEMENT ACCESS
 
@@ -959,7 +1002,15 @@ private:
   /// @param pos position of the element to return
   /// @return Reference to the requested element.
   /// @throw std::out_of_range
-  reference at(size_type pos);
+  reference at(size_type pos) {
+      if (pos > size_count-1) throw std::out_of_range;
+      Node<T>* temp = head;
+      for (size_type count = 0; count < pos; count++) {
+          temp = temp->next;
+      }
+      reference ref = &temp->value;
+      return ref;
+  }
 
   /// @brief Returns a const reference to the element at specified location pos,
   /// with bounds checking. If pos is not within the range of the container, an
@@ -967,143 +1018,263 @@ private:
   /// @param pos position of the element to return
   /// @return Const Reference to the requested element.
   /// @throw std::out_of_range
-  const_reference at(size_type pos) const;
+  const_reference at(size_type pos) const {
+    if (pos > size_count - 1) throw std::out_of_range;
+    Node<T>* temp = head;
+    for (size_type count = 0; count < pos; count++) {
+        temp = temp->next;
+    }
+    const_reference ref = &temp->value;
+    return ref;
+  }
 
   /// @brief Returns a reference to the element at specified location pos. No
   /// bounds checking is performed.
   /// @param pos position of the element to return
   /// @return Reference to the requested element.
-  reference operator[](size_type pos);
+  reference operator[](size_type pos) {
+    Node<T>* temp = head;
+    for (size_type count = 0; count < pos; count++) {
+        temp = temp->next;
+    }
+    reference ref = &temp->value;
+    return ref;
+  }
 
   /// @brief Returns a const reference to the element at specified location pos.
   /// No bounds checking is performed.
   /// @param pos position of the element to return
   /// @return Const Reference to the requested element.
-  const_reference operator[](size_type pos) const;
+  const_reference operator[](size_type pos) const {
+    Node<T>* temp = head;
+    for (size_type count = 0; count < pos; count++) {
+        temp = temp->next;
+    }
+    reference ref = &temp->value;
+    return ref;
+  }
 
   /// @brief Returns a reference to the first element in the container.
   /// Calling front on an empty container is undefined.
   /// @return Reference to the first element
-  reference front();
+  reference front() {
+    reference ref = &this->head->value;
+    return ref
+  }
 
   /// @brief Returns a const reference to the first element in the container.
   /// Calling front on an empty container is undefined.
   /// @return Const reference to the first element
-  const_reference front() const;
+  const_reference front() const {
+    const_reference ref = &this->head->value;
+    return ref
+  }
 
   /// @brief Returns a reference to the last element in the container.
   /// Calling back on an empty container causes undefined behavior.
   /// @return Reference to the last element.
-  reference back();
+  reference back() {
+    reference ref = &this->tail->value;
+    return ref
+  }
 
   /// @brief Returns a const reference to the last element in the container.
   /// Calling back on an empty container causes undefined behavior.
   /// @return Const Reference to the last element.
-  const_reference back() const;
+  const_reference back() const {
+    const_reference ref = &this->tail->value;
+    return ref
+  }
 
   /// ITERATORS
 
   /// @brief Returns an iterator to the first element of the deque.
   /// If the deque is empty, the returned iterator will be equal to end().
   /// @return Iterator to the first element.
-  iterator begin() noexcept;
+  iterator begin() noexcept {
+    if (this->size() == 0) return end();
+    Node<iterator>* temp = head;
+    return temp;
+  }
 
   /// @brief Returns an iterator to the first element of the deque.
   /// If the deque is empty, the returned iterator will be equal to end().
   /// @return Iterator to the first element.
-  const_iterator begin() const noexcept;
+  const_iterator begin() const noexcept {
+    if (this->size() == 0) return end();
+    Node<const_iterator>* temp = head;
+    return temp;
+  }
 
   /// @brief Same to begin()
-  const_iterator cbegin() const noexcept;
+  const_iterator cbegin() const noexcept {
+    return begin();
+  }
 
   /// @brief Returns an iterator to the element following the last element of
   /// the deque. This element acts as a placeholder; attempting to access it
   /// results in undefined behavior.
   /// @return Iterator to the element following the last element.
-  iterator end() noexcept;
+  iterator end() noexcept {
+    Node<iterator>* iter = tail;
+    return iter->next;
+  }
 
   /// @brief Returns an constant iterator to the element following the last
   /// element of the deque. This element acts as a placeholder; attempting to
   /// access it results in undefined behavior.
   /// @return Constant Iterator to the element following the last element.
-  const_iterator end() const noexcept;
+  const_iterator end() const noexcept {
+    Node<const_iterator>* iter = tail;
+    return iter->next;
+  }
 
   /// @brief Same to end()
-  const_iterator cend() const noexcept;
+  const_iterator cend() const noexcept{
+    return end();
+  }
 
   /// @brief Returns a reverse iterator to the first element of the reversed
   /// deque. It corresponds to the last element of the non-reversed deque. If
   /// the deque is empty, the returned iterator is equal to rend().
   /// @return Reverse iterator to the first element.
-  reverse_iterator rbegin() noexcept;
+  reverse_iterator rbegin() noexcept {
+    if (this->size() == 0) return rend();
+    Node<reverse_iterator>* temp = tail;
+    return temp;
+  }
 
   /// @brief Returns a const reverse iterator to the first element of the
   /// reversed deque. It corresponds to the last element of the non-reversed
   /// deque. If the deque is empty, the returned iterator is equal to rend().
   /// @return Const Reverse iterator to the first element.
-  const_reverse_iterator rbegin() const noexcept;
+  const_reverse_iterator rbegin() const noexcept {
+    if (this->size() == 0) return rend();
+    Node<const_reverse_iterator>* temp = tail;
+    return temp;
+  }
 
   /// @brief Same to rbegin()
-  const_reverse_iterator crbegin() const noexcept;
+  const_reverse_iterator crbegin() const noexcept {
+    return rbegin();
+  }
 
   /// @brief Returns a reverse iterator to the element following the last
   /// element of the reversed deque. It corresponds to the element preceding the
   /// first element of the non-reversed deque. This element acts as a
   /// placeholder, attempting to access it results in undefined behavior.
   /// @return Reverse iterator to the element following the last element.
-  reverse_iterator rend() noexcept;
+  reverse_iterator rend() noexcept {
+    Node<reverse_iterator>* iter = head;
+    return iter->prev;
+  }
 
   /// @brief Returns a const reverse iterator to the element following the last
   /// element of the reversed deque. It corresponds to the element preceding the
   /// first element of the non-reversed deque. This element acts as a
   /// placeholder, attempting to access it results in undefined behavior.
   /// @return Const Reverse iterator to the element following the last element.
-  const_reverse_iterator rend() const noexcept;
+  const_reverse_iterator rend() const noexcept {
+    Node<const_reverse_iterator>* iter = head;
+    return iter->prev;
+  }
 
   /// @brief Same to rend()
-  const_reverse_iterator crend() const noexcept;
+  const_reverse_iterator crend() const noexcept {
+    return rend();
+  }
 
   /// CAPACITY
 
   /// @brief Checks if the container has no elements
   /// @return true if the container is empty, false otherwise
   bool empty() const noexcept {
-      return size == 0;
+      return size_count == 0;
   }
 
   /// @brief Returns the number of elements in the container
   /// @return The number of elements in the container.
-  size_type size() const noexcept;
+  size_type size() const noexcept {
+      return size_count;
+  }
 
   /// @brief Returns the maximum number of elements the container is able to
   /// hold due to system or library implementation limitations
   /// @return Maximum number of elements.
-  size_type max_size() const noexcept;
+  size_type max_size() const noexcept {
+      return ULLONG_MAX;
+  }
 
   /// @brief Requests the removal of unused capacity.
   /// It is a non-binding request to reduce the memory usage without changing
   /// the size of the sequence. All iterators and references are invalidated.
   /// Past-the-end iterator is also invalidated.
-  void shrink_to_fit();
+  void shrink_to_fit() {
+      Node<T>* iter = head;
+      for (size_type count = 0; count < size_count; ++count) {
+          iter = iter->next;
+      }
+      tail = iter;
+  }
 
   /// MODIFIERS
 
   /// @brief Erases all elements from the container.
   /// nvalidates any references, pointers, or iterators referring to contained
   /// elements. Any past-the-end iterators are also invalidated.
-  void clear() noexcept;
+  void clear() noexcept {
+      for (auto iter = cbegin(); iter != cend(); iter++) {
+          this->erase(iter);
+      }
+  }
 
   /// @brief Inserts value before pos.
   /// @param pos iterator before which the content will be inserted.
   /// @param value element value to insert
   /// @return Iterator pointing to the inserted value.
-  iterator insert(const_iterator pos, const T& value);
+  iterator insert(const_iterator pos, const T& value) {
+      const_iterator posIter = this->cbegin();
+      while (posIter != pos) posIter++;
+      Node<const_iterator>* posNode(posIter);
+      Node<iterator> insertedNode(value);
+      if (posNode->prev != nullptr) {
+          Node<const_iterator>* beforeNode = posNode->prev;
+          insertedNode.next = posNode;
+          insertedNode.prev = beforeNode;
+          beforeNode->next = insertedNode;
+          posNode->prev = insertedNode;
+      }
+      else {
+          insertedNode.next = posNode;
+          insertedNode.prev = nullptr;
+          posNode->prev = insertedNode;
+      }
+      return insertedNode.value;
+  }
 
   /// @brief Inserts value before pos.
   /// @param pos iterator before which the content will be inserted.
   /// @param value element value to insert
   /// @return Iterator pointing to the inserted value.
-  iterator insert(const_iterator pos, T&& value);
+  iterator insert(const_iterator pos, T&& value) {
+      const_iterator posIter = this->cbegin();
+      while (posIter != pos) posIter++;
+      Node<const_iterator>* posNode(posIter);
+      Node<iterator> insertedNode(value);
+      if (posNode->prev != nullptr) {
+          Node<const_iterator>* beforeNode = posNode->prev;
+          insertedNode.next = posNode;
+          insertedNode.prev = beforeNode;
+          beforeNode->next = insertedNode;
+          posNode->prev = insertedNode;
+      }
+      else {
+          insertedNode.next = posNode;
+          insertedNode.prev = nullptr;
+          posNode->prev = insertedNode;
+      }
+      return insertedNode.value;
+  }
 
   /// @brief Inserts count copies of the value before pos.
   /// @param pos iterator before which the content will be inserted.
@@ -1111,7 +1282,28 @@ private:
   /// @param value element value to insert
   /// @return Iterator pointing to the first element inserted, or pos if count
   /// == 0.
-  iterator insert(const_iterator pos, size_type count, const T& value);
+  iterator insert(const_iterator pos, size_type count, const T& value) {
+      const_iterator posIter = this->cbegin();
+      while (posIter != pos) posIter++;
+      Node<const_iterator>* posNode(posIter);
+      Node<iterator> insertedNode(value);
+      for (size_type i = 0; i < count; ++i) {
+        if (posNode->prev != nullptr) {
+            Node<const_iterator>* beforeNode = posNode->prev;
+            insertedNode.next = posNode;
+            insertedNode.prev = beforeNode;
+            beforeNode->next = insertedNode;
+            posNode->prev = insertedNode;
+        }
+        else {
+            insertedNode.next = posNode;
+            insertedNode.prev = nullptr;
+            posNode->prev = insertedNode;
+        }
+        posNode = posNode->prev;
+      }
+      return insertedNode.value;
+  }
 
   /// @brief Inserts elements from range [first, last) before pos.
   /// @tparam InputIt Input Iterator
@@ -1121,14 +1313,24 @@ private:
   /// @return Iterator pointing to the first element inserted, or pos if first
   /// == last.
   template <class InputIt>
-  iterator insert(const_iterator pos, InputIt first, InputIt last);
+  iterator insert(const_iterator pos, InputIt first, InputIt last) {
+      auto iter = first;
+      while (iter != last) {
+          this->insert(pos, *iter);
+          iter++;
+      }
+  }
 
   /// @brief Inserts elements from initializer list before pos.
   /// @param pos iterator before which the content will be inserted.
   /// @param ilist initializer list to insert the values from
   /// @return Iterator pointing to the first element inserted, or pos if ilist
   /// is empty.
-  iterator insert(const_iterator pos, std::initializer_list<T> ilist);
+  iterator insert(const_iterator pos, std::initializer_list<T> ilist) {
+      for (auto iter = ilist.begin(); iter != ilist.end(); iter++) {
+          this->insert(pos, *iter);
+      }
+  }
 
   /// @brief Inserts a new element into the container directly before pos.
   /// @param pos iterator before which the new element will be constructed
@@ -1140,26 +1342,61 @@ private:
   /// @brief Removes the element at pos.
   /// @param pos iterator to the element to remove
   /// @return Iterator following the last removed element.
-  iterator erase(const_iterator pos);
+  iterator erase(const_iterator pos) {
+      const_iterator posIter = this->cbegin();
+      while (posIter != pos) posIter++;
+      Node<const_iterator>* posNode(posIter);
+      if (posNode->prev != nullptr && posNode->next != null) {
+          Node<const_iterator>* beforeNode = posNode->prev;
+          Node<const_iterator>* nextNode = posNode->next;
+          beforeNode->next = nextNode;
+          nextNode->prev = beforeNode;
+          delete posNode;
+          return nextNode;
+      }
+      else if (posNode->prev == nullptr && posNode->next != null) {
+          Node<const_iterator>* nextNode = posNode->next;
+          nextNode.prev = nullptr;
+          delete posNode;
+          return nextNode->next;
+      }
+      else if (posNode->prev != nullptr && posNode->next == null) {
+          Node<const_iterator>* beforeNode = posNode->prev;
+          beforeNode.next = nullptr;
+          delete posNode;
+          return beforeNode->next;
+      }
+      else {
+          delete posNode;
+          return nullptr;
+      }
+  }
 
   /// @brief Removes the elements in the range [first, last).
   /// @param first,last range of elements to remove
   /// @return Iterator following the last removed element.
-  iterator erase(const_iterator first, const_iterator last);
+  iterator erase(const_iterator first, const_iterator last) {
+      iterator result;
+      for (auto iter = first; iter != last; iter++) {
+          result = this->erase(iter);
+      }
+      return result;
+  }
 
   /// @brief Appends the given element value to the end of the container.
   /// The new element is initialized as a copy of value.
   /// @param value the value of the element to append
   void push_back(const T& value) {
-      size++;
-      if (head != nullptr) {
+      size_count++;
+      if (tail != nullptr) {
           Node<T&> temp = new Node<T&>(value);
-          temp.next = head;
-          head->prev = temp;
-          head = temp;
+          temp.prev = tail;
+          tail->next = temp;
+          tail = temp;
       }
       else {
-          head = new Node<T&>(value);
+          tail = new Node<T&>(value);
+          head = tail;
       }
   }
 
@@ -1167,15 +1404,16 @@ private:
   /// Value is moved into the new element.
   /// @param value the value of the element to append
   void push_back(T&& value) {
-      size++;
-      if (head != nullptr) {
+      size_count++;
+      if (tail != nullptr) {
           Node<T&&> temp = new Node<T&&>(value);
-          temp.next = head;
-          head->prev = temp;
-          head = temp;
+          temp.prev = tail;
+          tail->next = temp;
+          tail = temp;
       }
       else {
-          head = new Node<T&&>(value);
+          tail = new Node<T&&>(value);
+          head = tail;
       }
   }
 
@@ -1186,15 +1424,46 @@ private:
   reference emplace_back(Args&&... args);
 
   /// @brief Removes the last element of the container.
-  void pop_back();
+  void pop_back() {
+      if (tail) {
+          Node<T>* pointTail = tail;
+          tail = pointTail->prev;
+          delete pointTail;
+          --size_count;
+      }
+  }
 
   /// @brief Prepends the given element value to the beginning of the container.
   /// @param value the value of the element to prepend
-  void push_front(const T& value);
+  void push_front(const T& value) {
+      size_count++;
+      if (head != nullptr) {
+          Node<T&> temp = new Node<T&>(value);
+          temp->next = head;
+          head->prev = temp;
+          head = temp;
+      }
+      else {
+          head = new Node<T&>(value);
+          tail = head;
+      }
+  }
 
   /// @brief Prepends the given element value to the beginning of the container.
   /// @param value moved value of the element to prepend
-  void push_front(T&& value);
+  void push_front(T&& value) {
+      size_count++;
+      if (head != nullptr) {
+          Node<T&&> temp = new Node<T&&>(value);
+          temp->next = head;
+          head->prev = temp;
+          head = temp;
+      }
+      else {
+          head = new Node<T&&>(value);
+          tail = head;
+      }
+  }
 
   /// @brief Inserts a new element to the beginning of the container.
   /// @param ...args arguments to forward to the constructor of the element
@@ -1205,11 +1474,10 @@ private:
   /// @brief Removes the first element of the container.
   void pop_front() {
       if (head) {
-          T tempVal = head->value;
           Node<T>* pointHead = head;
-          head = pointHead->next;
-          delete[] pointHead;
-          size--;
+          head = head->next;
+          delete pointHead;
+          --size_count;
       }
   }
 
@@ -1218,7 +1486,15 @@ private:
   /// first count elements. If the current size is less than count, additional
   /// default-inserted elements are appended
   /// @param count new size of the container
-  void resize(size_type count);
+  void resize(size_type count) {
+      if (size_count == count) return;
+      if (size_count > count) {
+          while (size_count != count) pop_back();
+      }
+      else {
+          while (size_count != count) push_back(T{});
+      }
+  }
 
   /// @brief Resizes the container to contain count elements.
   /// If the current size is greater than count, the container is reduced to its
@@ -1226,14 +1502,26 @@ private:
   /// copies of value are appended.
   /// @param count new size of the container
   /// @param value the value to initialize the new elements with
-  void resize(size_type count, const value_type& value);
+  void resize(size_type count, const value_type& value) {
+      if (size_count == count) return;
+      if (size_count > count) {
+          while (size_count != count) pop_back();
+      }
+      else {
+          while (size_count != count) push_back(value);
+      }
+  }
 
   /// @brief Exchanges the contents of the container with those of other.
   /// Does not invoke any move, copy, or swap operations on individual elements.
   /// All iterators and references remain valid. The past-the-end iterator is
   /// invalidated.
   /// @param other container to exchange the contents with
-  void swap(Deque& other);
+  void swap(Deque& other) {
+      std::swap(this->head, other.head);
+      std::swap(this->tail, other.tail);
+      std::swap(this->size_count, other.size_count);
+  }
 
   /// COMPARISIONS
 
@@ -1241,37 +1529,78 @@ private:
   /// @param lhs,rhs deques whose contents to compare
   template <class U, class Alloc>
   friend bool operator==(const Deque<U, Alloc>& lhs,
-                         const Deque<U, Alloc>& rhs);
+      const Deque<U, Alloc>& rhs) {
+      if (lhs.size_count != rhs.size_count) return false;
+      for (auto liter = lhs.begin(), auto riter = rhs.begin(); liter != lhs.end() && riter != lhs.end(); liter++, riter++) {
+          if (*liter != *riter) return false;
+      }
+      return true;
+  }
 
   /// @brief Checks if the contents of lhs and rhs are not equal
   /// @param lhs,rhs deques whose contents to compare
   template <class U, class Alloc>
   friend bool operator!=(const Deque<U, Alloc>& lhs,
-                         const Deque<U, Alloc>& rhs);
+      const Deque<U, Alloc>& rhs) {
+      if (lhs.size_count != rhs.size_count) return true;
+      for (auto liter = lhs.begin(), auto riter = rhs.begin(); liter != lhs.end() && riter != lhs.end(); liter++, riter++) {
+          if (*liter != *riter) return true;
+      }
+      return false;
+  }
 
   /// @brief Compares the contents of lhs and rhs lexicographically.
   /// @param lhs,rhs deques whose contents to compare
   template <class U, class Alloc>
-  friend bool operator>(const Deque<U, Alloc>& lhs, const Deque<U, Alloc>& rhs);
+  friend bool operator>(const Deque<U, Alloc>& lhs, const Deque<U, Alloc>& rhs) {
+      if (lhs.size_count < rhs.size_count) return false;
+      for (auto liter = lhs.begin(), auto riter = rhs.begin(); liter != lhs.end() && riter != lhs.end(); liter++, riter++) {
+          if (*liter <= *riter) return false;
+      }
+      return true;
+  }
 
   /// @brief Compares the contents of lhs and rhs lexicographically.
   /// @param lhs,rhs deques whose contents to compare
   template <class U, class Alloc>
-  friend bool operator<(const Deque<U, Alloc>& lhs, const Deque<U, Alloc>& rhs);
+  friend bool operator<(const Deque<U, Alloc>& lhs, const Deque<U, Alloc>& rhs) {
+      if (lhs.size_count > rhs.size_count) return false;
+      for (auto liter = lhs.begin(), auto riter = rhs.begin(); liter != lhs.end() && riter != lhs.end(); liter++, riter++) {
+          if (*liter >= *riter) return false;
+      }
+      return true;
+  }
 
   /// @brief Compares the contents of lhs and rhs lexicographically.
   /// @param lhs,rhs deques whose contents to compare
   template <class U, class Alloc>
   friend bool operator>=(const Deque<U, Alloc>& lhs,
-                         const Deque<U, Alloc>& rhs);
+      const Deque<U, Alloc>& rhs) {
+      if (lhs.size_count < rhs.size_count) return false;
+      for (auto liter = lhs.begin(), auto riter = rhs.begin(); liter != lhs.end() && riter != lhs.end(); liter++, riter++) {
+          if (*liter < *riter) return false;
+      }
+      return true;
+  }
 
   /// @brief Compares the contents of lhs and rhs lexicographically.
   /// @param lhs,rhs deques whose contents to compare
   template <class U, class Alloc>
   friend bool operator<=(const Deque<U, Alloc>& lhs,
-                         const Deque<U, Alloc>& rhs);
+      const Deque<U, Alloc>& rhs) {
+      if (lhs.size_count > rhs.size_count) return false;
+      for (auto liter = lhs.begin(), auto riter = rhs.begin(); liter != lhs.end() && riter != lhs.end(); liter++, riter++) {
+          if (*liter > *riter) return false;
+      }
+      return true;
+  }
 
   // operator <=> will be handy
+  private:
+      Node<T>* head;
+      Node<T>* tail;
+      size_type* size_count = 0;
+      Allocator alloc = new Allocator();
 };
 
 /// NON-MEMBER FUNCTIONS
@@ -1279,14 +1608,27 @@ private:
 /// @brief  Swaps the contents of lhs and rhs.
 /// @param lhs,rhs containers whose contents to swap
 template <class T, class Alloc>
-void swap(Deque<T, Alloc>& lhs, Deque<T, Alloc>& rhs);
+void swap(Deque<T, Alloc>& lhs, Deque<T, Alloc>& rhs) {
+    std::swap(lhs.begin(), rhs.begin());
+    std::swap(lhs.end(), rhs.end());
+    std::swap(lhs.size(), rhs.size());
+}
 
 /// @brief Erases all elements that compare equal to value from the container.
 /// @param c container from which to erase
 /// @param value value to be removed
 /// @return The number of erased elements.
 template <class T, class Alloc, class U>
-typename Deque<T, Alloc>::size_type erase(Deque<T, Alloc>& c, const U& value);
+typename Deque<T, Alloc>::size_type erase(Deque<T, Alloc>& c, const U& value) {
+    size_t count = 0;
+    for (auto iter = c.begin(); iter != c.end(); iter++) {
+        if (*iter == value) {
+            c.erase(value);
+            count++;
+        }
+    }
+    return count;
+}
 
 /// @brief Erases all elements that compare equal to value from the container.
 /// @param c container from which to erase
@@ -1294,5 +1636,15 @@ typename Deque<T, Alloc>::size_type erase(Deque<T, Alloc>& c, const U& value);
 /// erased.
 /// @return The number of erased elements.
 template <class T, class Alloc, class Pred>
-typename Deque<T, Alloc>::size_type erase_if(Deque<T, Alloc>& c, Pred pred);
+typename Deque<T, Alloc>::size_type erase_if(Deque<T, Alloc>& c, Pred pred) {
+    size_t count = 0;
+    for (auto iter = c.begin(); iter != c.end(); iter++) {
+        if (pred(*iter) == true) {
+            c.erase(*iter);
+            count++;
+        }
+    }
+    return count;
+}
+
 }  // namespace fefu_laboratory_two
