@@ -41,6 +41,12 @@ struct Node
     ValueType value;
     Node<ValueType>* next;
     Node<ValueType>* prev;
+
+    Node(Node<ValueType>* prev, ValueType value, Node<ValueType> next) {
+        this->prev = prev;
+        this->next = next;
+        this->value = value;
+    }
 };
 
 template <typename ValueType>
@@ -110,7 +116,7 @@ class Deque_iterator {
   }
 
   reference operator*() const {
-      reference ref = *data;
+      reference ref = *data->value;
       return ref;
   }
   pointer operator->() const {
@@ -136,7 +142,15 @@ class Deque_iterator {
   }
 
   Deque_iterator operator+(const difference_type& other) const {
-      data += other;
+      int count = static_cast<int>(other);
+      while (count > 0) {
+          data = data->next;
+          if (data->next == nullptr) {
+              break;
+          }
+          count--;
+      }
+      return *data;
   }
   Deque_iterator& operator+=(const difference_type& other) {
       int count = static_cast<int>(other);
@@ -151,7 +165,15 @@ class Deque_iterator {
   }
 
   Deque_iterator operator-(const difference_type& other) const {
-      data -= other;
+      int count = static_cast<int>(other);
+      while (count > 0) {
+          data = data->prev;
+          if (data->prev == nullptr) {
+              break;
+          }
+          count--;
+      }
+      return *data;
   }
   Deque_iterator& operator-=(const difference_type& other) {
       int count = static_cast<int>(other);
@@ -339,7 +361,7 @@ public:
     }
 
     reference operator*() const {
-        reference ref = *data;
+        reference ref = *data->value;
         return ref;
     }
     pointer operator->() const {
@@ -365,7 +387,15 @@ public:
     }
 
     Deque_const_iterator operator+(const difference_type& other) const {
-        data += other;
+        int count = other;
+        while (count > 0) {
+            data = data->next;
+            if (data->next == nullptr) {
+                break;
+            }
+            count--;
+        }
+        return *data;
     }
     Deque_const_iterator& operator+=(const difference_type& other) {
         int count = other;
@@ -380,7 +410,15 @@ public:
     }
 
     Deque_const_iterator operator-(const difference_type& other) const {
-        data -= other;
+        int count = other;
+        while (count > 0) {
+            data = data->prev;
+            if (data->prev == nullptr) {
+                break;
+            }
+            count--;
+        }
+        return *data;
     }
     Deque_const_iterator& operator-=(const difference_type& other) {
         int count = other;
@@ -501,16 +539,22 @@ class Deque_reverse_iterator {
   constexpr Deque_reverse_iterator() = default;
 
   constexpr explicit Deque_reverse_iterator(iterator_type x) {
-      data = x;
+      
   }
 
   template <class U>
-  constexpr Deque_reverse_iterator(const Deque_reverse_iterator<U>& other);
+  constexpr Deque_reverse_iterator(const Deque_reverse_iterator<U>& other) {
+      static_assert(std::is_same_v<decltype(*std::declval<U>().data), decltype(data)>);
+  }
 
   template <class U>
-  Deque_reverse_iterator& operator=(const Deque_reverse_iterator<U>& other);
+  Deque_reverse_iterator& operator=(const Deque_reverse_iterator<U>& other) {
+      this->data = other.data;
+  }
 
-  iterator_type base() const;
+  iterator_type base() const {
+      return *iter;
+  }
 
   reference operator*() const {
       reference ref = *data;
@@ -562,7 +606,14 @@ class Deque_reverse_iterator {
   }
 
   Deque_reverse_iterator operator+(difference_type n) const {
-      data += n;
+      while (n > 0) {
+          data = data->prev;
+          if (data->prev == nullptr) {
+              break;
+          }
+          n--;
+      }
+      return *data;
   }
   Deque_reverse_iterator& operator+=(difference_type n) {
       while (n > 0) {
@@ -576,7 +627,14 @@ class Deque_reverse_iterator {
   }
 
   Deque_reverse_iterator operator-(difference_type n) const {
-      data -= n;
+      while (n > 0) {
+          data = data->next;
+          if (data->next == nullptr) {
+              break;
+          }
+          n--;
+      }
+      return *data;
   }
   Deque_reverse_iterator& operator-=(difference_type n) {
       while (n > 0) {
@@ -686,11 +744,31 @@ class Deque_reverse_iterator {
   template <class IterT>
   friend Deque_reverse_iterator<IterT> operator+(
       typename Deque_reverse_iterator<IterT>::difference_type n,
-      const Deque_reverse_iterator<IterT>& it);
+      const Deque_reverse_iterator<IterT>& it) {
+      return it.base() - n;
+  }
 
   template <class Iterator>
   friend auto operator-(const Deque_reverse_iterator<Iterator>& lhs,
-                        const Deque_reverse_iterator<Iterator>& rhs);
+      const Deque_reverse_iterator<Iterator>& rhs) {
+      difference_type count = 0;
+
+      if (lhs < rhs) {
+          while (rhs.data->value != lhs.data->value) {
+              lhs.data = lhs.data->prev;
+              count++;
+          }
+          return count;
+      }
+      else if (lhs > rhs) {
+          while (rhs.data->value != lhs.data->value) {
+              lhs.data = lhs.data->next;
+              count++;
+          }
+          return count;
+      }
+      return count;
+  }
 
   // operator <=> will be handy
 
@@ -701,16 +779,21 @@ class Deque_reverse_iterator {
   // friend constexpr void iter_swap(const reverse_iterator& x, const
   // std::reverse_iterator<Iter2>& y); // For extra points
 private:
-    Node<iterator_type>* data;
+    Node<Iter>* data;
+    iterator_type* iter;
 };
 
 template <class Iter>
-Deque_reverse_iterator<Iter> make_reverse_iterator(Iter i);
+Deque_reverse_iterator<Iter> make_reverse_iterator(Iter i) {
+    return Deque_reverse_iterator<Iter>(i);
+}
 
 template <typename T, typename Allocator = Allocator<T>>
 class Deque {
 private:
     Node<T>* head;
+    Node<T>* tail;
+    Node<T> nodes[];
     std::size_t size;
  public:
   using value_type = T;
@@ -728,18 +811,20 @@ private:
 
   /// @brief Default constructor. Constructs an empty container with a
   /// default-constructed allocator.
-  Deque();
+  Deque() = default;
 
   /// @brief Constructs an empty container with the given allocator
   /// @param alloc allocator to use for all memory allocations of this container
-  explicit Deque(const Allocator& alloc);
+  explicit Deque(const Allocator& alloc) : Allocator(alloc) {}
 
   /// @brief Constructs the container with count copies of elements with value
   /// and with the given allocator
   /// @param count the size of the container
   /// @param value the value to initialize elements of the container with
   /// @param alloc allocator to use for all memory allocations of this container
-  Deque(size_type count, const T& value, const Allocator& alloc = Allocator());
+  Deque(size_type count, const T& value, const Allocator& alloc = Allocator()) {
+     
+  }
 
   /// @brief Constructs the container with count default-inserted instances of
   /// T. No copies are made.
@@ -1068,13 +1153,13 @@ private:
   void push_back(const T& value) {
       size++;
       if (head != nullptr) {
-          Node<T&&> temp = new Node<T&&>(value);
+          Node<T&> temp = new Node<T&>(value);
           temp.next = head;
           head->prev = temp;
           head = temp;
       }
       else {
-          head = new Node<T&&>(value);
+          head = new Node<T&>(value);
       }
   }
 
