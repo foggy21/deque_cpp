@@ -235,51 +235,42 @@ class Deque_iterator {
 
   friend bool operator<(const Deque_iterator<ValueType>& it1,
       const Deque_iterator<ValueType>& it2) {
-      Node<Deque_iterator<ValueType>> node1(it1);
-      Node<Deque_iterator<ValueType>> node2(it2);
-      if (it1 == it2) return false;
-      while (node1 != nullptr) {
-          node1 = node1.next;
-          if (node1.value == node2.value) return true;
+      while (it2.data != nullptr) {
+          it1.data = it1.data->next;
+          it2.data = it2.data->next;
+          if (it2.data == nullptr && (it1.data != nullptr && it1.data == nullptr)) return false;
       }
-      return false;
+      return true;
   }
   friend bool operator<=(const Deque_iterator<ValueType>& it1,
       const Deque_iterator<ValueType>& it2) {
-      Node<Deque_iterator<ValueType>> node1(it1);
-      Node<Deque_iterator<ValueType>> node2(it2);
-      if (it1 == it2) return true;
-      while (node1 != nullptr) {
-          node1 = node1.next;
-          if (node1.value == node2.value) return true;
+      while (it2.data != nullptr) {
+          it1.data = it1.data->next;
+          it2.data = it2.data->next;
+          if (it2.data == nullptr && it1.data != nullptr) return false;
       }
-      return false;
+      return true;
   }
   friend bool operator>(const Deque_iterator<ValueType>& it1,
       const Deque_iterator<ValueType>& it2) {
-      Node<Deque_iterator<ValueType>> node1(it1);
-      Node<Deque_iterator<ValueType>> node2(it2);
-      if (it1 == it2) return false;
-      while (node2 != nullptr) {
-          node2 = node2.prev;
-          if (node1.value == node2.value) return true;
+      while (it1.data != nullptr) {
+          it1.data = it1.data->next;
+          it2.data = it2.data->next;
+          if (it1.data == nullptr && (it2.data != nullptr || it2.data == nullptr)) return false;
       }
-      return false;
+      return true;
   }
   friend bool operator>=(const Deque_iterator<ValueType>& it1,
       const Deque_iterator<ValueType>& it2) {
-      Node<Deque_iterator<ValueType>> node1(it1);
-      Node<Deque_iterator<ValueType>> node2(it2);
-      if (it1 == it2) return true;
-      while (node2 != nullptr) {
-          node2 = node2.prev;
-          if (node1.value == node2.value) return true;
+      while (it1.data != nullptr) {
+          it1.data = it1.data->next;
+          it2.data = it2.data->next;
+          if (it1.data == nullptr && it2.data != nullptr) return false;
       }
-      return false;
+      return true;
   }
   // operator<=> will be handy
-private:
-    Node<ValueType>* data;
+  Node<ValueType>* data;
 };
 
 template <typename ValueType>
@@ -294,8 +285,7 @@ public:
 
     Deque_const_iterator() noexcept = default;
     Deque_const_iterator(const Deque_const_iterator& other) noexcept {
-        Node<Deque_const_iterator> const_it(other);
-        data = const_it;
+        *this = other;
     }
     Deque_const_iterator(const Deque_iterator<ValueType>& other) noexcept {
         Node<Deque_iterator<ValueType>> it(other);
@@ -307,8 +297,7 @@ public:
         return *data;
     }
     Deque_const_iterator& operator=(const Deque_iterator<ValueType>& other) {
-        Node<Deque_iterator<ValueType>> it(other);
-        data = it;
+        data = other.data;
         return *data;
     }
 
@@ -324,46 +313,15 @@ public:
 
     friend bool operator==(const Deque_const_iterator<ValueType>& it1,
         const Deque_const_iterator<ValueType>& it2) {
-        Node<Deque_const_iterator<ValueType>> node1(it1);
-        Node<Deque_const_iterator<ValueType>> node2(it2);
-        while (node1.next != nullptr && node2.next != nullptr) {
-            if (node1.value == node2.value) {
-                node1 = node1.next;
-                node2 = node2.next;
-            }
-            else {
-                return false;
-            }
-            if ((node1 == nullptr && node2 != nullptr) ||
-                (node1 != nullptr && node2 == nullptr)) {
-                return false;
-            }
-        }
-        return true;
+        return it1.data == it2.data;
     }
     friend bool operator!=(const Deque_const_iterator<ValueType>& it1,
         const Deque_const_iterator<ValueType>& it2) {
-        Node<Deque_const_iterator<ValueType>> node1(it1);
-        Node<Deque_const_iterator<ValueType>> node2(it2);
-        while (node1.next != nullptr && node2.next != nullptr) {
-            if (node1.value == node2.value) {
-                node1 = node1.next;
-                node2 = node2.next;
-            }
-            else {
-                return true;
-            }
-            if ((node1 == nullptr && node2 != nullptr) ||
-                (node1 != nullptr && node2 == nullptr)) {
-                return true;
-            }
-        }
-        return false;
-
+        return it1.data != it2.data;
     }
 
     reference operator*() const {
-        reference ref = *data->value;
+        reference ref = data->value;
         return ref;
     }
     pointer operator->() const {
@@ -376,7 +334,7 @@ public:
     }
     Deque_const_iterator operator++(int) {
         data = data->next;
-        return *data;
+        return *this;
     }
 
     Deque_const_iterator& operator--() {
@@ -480,51 +438,43 @@ public:
 
   friend bool operator<(const Deque_const_iterator<ValueType>& it1,
       const Deque_const_iterator<ValueType>& it2) {
-      Node<Deque_iterator<ValueType>> node1(it1);
-      Node<Deque_iterator<ValueType>> node2(it2);
-      if (it1 == it2) return false;
-      while (node1 != nullptr) {
-          node1 = node1.next;
-          if (node1.value == node2.value) return true;
+      while (it2.data != nullptr) {
+          it1.data = it1.data->next;
+          it2.data = it2.data->next;
+          if (it2.data == nullptr && (it1.data != nullptr && it1.data == nullptr)) return false;
       }
-      return false;
+      return true;
   }
   friend bool operator<=(const Deque_const_iterator<ValueType>& it1,
       const Deque_const_iterator<ValueType>& it2) {
-      Node<Deque_iterator<ValueType>> node1(it1);
-      Node<Deque_iterator<ValueType>> node2(it2);
-      if (it1 == it2) return true;
-      while (node1 != nullptr) {
-          node1 = node1.next;
-          if (node1.value == node2.value) return true;
+      while (it2.data != nullptr) {
+          it1.data = it1.data->next;
+          it2.data = it2.data->next;
+          if (it2.data == nullptr && it1.data != nullptr) return false;
       }
-      return false;
+      return true;
   }
   friend bool operator>(const Deque_const_iterator<ValueType>& it1,
       const Deque_const_iterator<ValueType>& it2) {
-      Node<Deque_iterator<ValueType>> node1(it1);
-      Node<Deque_iterator<ValueType>> node2(it2);
-      if (it1 == it2) return false;
-      while (node2 != nullptr) {
-          node2 = node2.prev;
-          if (node1.value == node2.value) return true;
+      while (it1.data != nullptr) {
+          it1.data = it1.data->next;
+          it2.data = it2.data->next;
+          if (it1.data == nullptr && (it2.data != nullptr || it2.data == nullptr)) return false;
       }
-      return false;
+      return true;
   }
   friend bool operator>=(const Deque_const_iterator<ValueType>& it1,
       const Deque_const_iterator<ValueType>& it2) {
-      Node<Deque_iterator<ValueType>> node1(it1);
-      Node<Deque_iterator<ValueType>> node2(it2);
-      if (it1 == it2) return true;
-      while (node2 != nullptr) {
-          node2 = node2.prev;
-          if (node1.value == node2.value) return true;
+      while (it1.data != nullptr) {
+          it1.data = it1.data->next;
+          it2.data = it2.data->next;
+          if (it1.data == nullptr && it2.data != nullptr) return false;
       }
-      return false;
+      return true;
   }
   // operator<=> will be handy
-private:
-    Node<ValueType>* data;
+
+  Node<ValueType>* data;
 };
 
 template <class Iter>
@@ -546,7 +496,7 @@ class Deque_reverse_iterator {
 
   template <class U>
   constexpr Deque_reverse_iterator(const Deque_reverse_iterator<U>& other) {
-      static_assert(std::is_same_v<decltype(*std::declval<U>().data), decltype(data)>);
+      static_assert(std::is_same_v<decltype(*std::declval<U>().data), decltype(data)>, "");
   }
 
   template <class U>
@@ -652,95 +602,57 @@ class Deque_reverse_iterator {
   template <class Iterator1, class Iterator2>
   friend bool operator==(const Deque_reverse_iterator<Iterator1>& lhs,
       const Deque_reverse_iterator<Iterator2>& rhs) {
-      Node<Deque_reverse_iterator<Iterator1>> node1(lhs);
-      Node<Deque_reverse_iterator<Iterator2>> node2(rhs);
-      while (node1.next != nullptr && node2.next != nullptr) {
-          if (node1.value == node2.value) {
-              node1 = node1.prev;
-              node2 = node2.prev;
-          }
-          else {
-              return false;
-          }
-          if ((node1 == nullptr && node2 != nullptr) ||
-              (node1 != nullptr && node2 == nullptr)) {
-              return false;
-          }
-      }
-      return true;
+      return rhs.data == lhs.data;
   }
 
   template <class Iterator1, class Iterator2>
   friend bool operator!=(const Deque_reverse_iterator<Iterator1>& lhs,
       const Deque_reverse_iterator<Iterator2>& rhs) {
-      Node<Deque_reverse_iterator<Iterator1>> node1(lhs);
-      Node<Deque_reverse_iterator<Iterator2>> node2(rhs);
-      while (node1.next != nullptr && node2.next != nullptr) {
-          if (node1.value == node2.value) {
-              node1 = node1.prev;
-              node2 = node2.prev;
-          }
-          else {
-              return true;
-          }
-          if ((node1 == nullptr && node2 != nullptr) ||
-              (node1 != nullptr && node2 == nullptr)) {
-              return true;
-          }
-      }
-      return false;
+      return rhs.data != lhs.data;
   }
 
   template <class Iterator1, class Iterator2>
-  friend bool operator>(const Deque_reverse_iterator<Iterator1>& lhs,
-      const Deque_reverse_iterator<Iterator2>& rhs) {
-      Node<Deque_reverse_iterator<Iterator1>> node1(lhs);
-      Node<Deque_reverse_iterator<Iterator2>> node2(rhs);
-      if (lhs == rhs) return false;
-      while (node2 != nullptr) {
-          node2 = node2.next;
-          if (node1.value == node2.value) return true;
+  friend bool operator>(const Deque_reverse_iterator<Iterator1>& it1,
+      const Deque_reverse_iterator<Iterator2>& it2) {
+      while (it1.data != nullptr) {
+          it1.data = it1.data->next;
+          it2.data = it2.data->next;
+          if (it1.data == nullptr && (it2.data != nullptr || it2.data == nullptr)) return false;
       }
-      return false;
+      return true;
   }
 
   template <class Iterator1, class Iterator2>
-  friend bool operator<(const Deque_reverse_iterator<Iterator1>& lhs,
-      const Deque_reverse_iterator<Iterator2>& rhs) {
-      Node<Deque_reverse_iterator<Iterator1>> node1(lhs);
-      Node<Deque_reverse_iterator<Iterator2>> node2(rhs);
-      if (lhs == rhs) return false;
-      while (node1 != nullptr) {
-          node1 = node1.prev;
-          if (node1.value == node2.value) return true;
+  friend bool operator<(const Deque_reverse_iterator<Iterator1>& it1,
+      const Deque_reverse_iterator<Iterator2>& it2) {
+      while (it2.data != nullptr) {
+          it1.data = it1.data->next;
+          it2.data = it2.data->next;
+          if (it2.data == nullptr && (it1.data != nullptr && it1.data == nullptr)) return false;
       }
-      return false;
+      return true;
   }
 
   template <class Iterator1, class Iterator2>
-  friend bool operator<=(const Deque_reverse_iterator<Iterator1>& lhs,
-      const Deque_reverse_iterator<Iterator2>& rhs) {
-      Node<Deque_reverse_iterator<Iterator1>> node1(lhs);
-      Node<Deque_reverse_iterator<Iterator2>> node2(lhs);
-      if (lhs == rhs) return true;
-      while (node1 != nullptr) {
-          node1 = node1.prev;
-          if (node1.value == node2.value) return true;
+  friend bool operator<=(const Deque_reverse_iterator<Iterator1>& it1,
+      const Deque_reverse_iterator<Iterator2>& it2) {
+      while (it2.data != nullptr) {
+          it1.data = it1.data->next;
+          it2.data = it2.data->next;
+          if (it2.data == nullptr && it1.data != nullptr) return false;
       }
-      return false;
+      return true;
   }
 
   template <class Iterator1, class Iterator2>
-  friend bool operator>=(const Deque_reverse_iterator<Iterator1>& lhs,
-      const Deque_reverse_iterator<Iterator2>& rhs) {
-      Node<Deque_reverse_iterator<Iterator1>> node1(lhs);
-      Node<Deque_reverse_iterator<Iterator2>> node2(rhs);
-      if (lhs == rhs) return true;
-      while (node2 != nullptr) {
-          node2 = node2.next;
-          if (node1.value == node2.value) return true;
+  friend bool operator>=(const Deque_reverse_iterator<Iterator1>& it1,
+      const Deque_reverse_iterator<Iterator2>& it2) {
+      while (it1.data != nullptr) {
+          it1.data = it1.data->next;
+          it2.data = it2.data->next;
+          if (it1.data == nullptr && it2.data != nullptr) return false;
       }
-      return false;
+      return true;
   }
 
   template <class IterT>
@@ -780,8 +692,8 @@ class Deque_reverse_iterator {
   // template<std::indirectly_swappable<Iter> Iter2>
   // friend constexpr void iter_swap(const reverse_iterator& x, const
   // std::reverse_iterator<Iter2>& y); // For extra points
+  Node<Iter>* data;
 private:
-    Node<Iter>* data;
     iterator_type* iter;
 };
 
@@ -812,14 +724,14 @@ class Deque {
 
   /// @brief Constructs an empty container with the given allocator
   /// @param alloc allocator to use for all memory allocations of this container
-  explicit Deque(const Allocator& alloc) : Allocator(alloc) {}
+  explicit Deque(const Allocator& alloc) : alloc(alloc) {}
 
   /// @brief Constructs the container with count copies of elements with value
   /// and with the given allocator
   /// @param count the size of the container
   /// @param value the value to initialize elements of the container with
   /// @param alloc allocator to use for all memory allocations of this container
-  Deque(size_type count, const T& value, const Allocator& alloc = Allocator()) : Allocator(alloc) {
+  Deque(size_type count, const T& value, const Allocator& alloc = Allocator()) : alloc(alloc) {
       for (size_type iter = 0; iter < count; ++iter) {
           this->push_front(value);
      }
@@ -829,7 +741,7 @@ class Deque {
   /// T. No copies are made.
   /// @param count the size of the container
   /// @param alloc allocator to use for all memory allocations of this container
-  explicit Deque(size_type count, const Allocator& alloc = Allocator()) : Allocator(alloc) {
+  explicit Deque(size_type count, const Allocator& alloc = Allocator()) : alloc(alloc) {
       for (size_type iter = 0; iter < count; ++iter) {
           this->push_front(T{});
       }
@@ -841,9 +753,10 @@ class Deque {
   /// @param first, last 	the range to copy the elements from
   /// @param alloc allocator to use for all memory allocations of this container
   template <class InputIt>
-  Deque(InputIt first, InputIt last, const Allocator& alloc = Allocator()) : Allocator(alloc) {
+  Deque(InputIt first, InputIt last, const Allocator& alloc = Allocator()) : alloc(alloc) {
       for (auto iter = first; iter != last; iter++) {
-          this->push_front(*it);
+          Node<InputIt>* abc = new Node<InputIt>(iter);
+          this->push_front(abc->value);
       }
   }
 
@@ -862,7 +775,7 @@ class Deque {
   /// @param other another container to be used as source to initialize the
   /// elements of the container with
   /// @param alloc allocator to use for all memory allocations of this container
-  Deque(const Deque& other, const Allocator& alloc) : Allocator(alloc) {
+  Deque(const Deque& other, const Allocator& alloc) : alloc(alloc) {
       for (Node<T>* iter = other.head; iter != nullptr; iter++) {
           this->push_front(iter->value);
       }
@@ -892,7 +805,7 @@ class Deque {
    * elements of the container with
    * @param alloc allocator to use for all memory allocations of this container
    */
-  Deque(Deque&& other, const Allocator& alloc) : Allocator(alloc) {
+  Deque(Deque&& other, const Allocator& alloc) : alloc(alloc) {
       swap(other);
   }
 
@@ -901,7 +814,7 @@ class Deque {
   /// @param init initializer list to initialize the elements of the container
   /// with
   /// @param alloc allocator to use for all memory allocations of this container
-  Deque(std::initializer_list<T> init, const Allocator& alloc = Allocator()) : Allocator(alloc) {
+  Deque(std::initializer_list<T> init, const Allocator& alloc = Allocator()) : alloc(alloc) {
       for (auto iter = init.begin(); iter != init.end(); ++iter) {
           this->push_front(*iter);
       }
@@ -975,7 +888,8 @@ class Deque {
   template <class InputIt>
   void assign(InputIt first, InputIt last) {
       for (auto iter = first; iter != last; iter++) {
-          this->push_front(*iter);
+          Node<InputIt>* abc = new Node<InputIt>(iter);
+          this->push_front(abc->value);
       }
   }
 
@@ -1008,7 +922,7 @@ class Deque {
       for (size_type count = 0; count < pos; count++) {
           temp = temp->next;
       }
-      reference ref = &temp->value;
+      reference ref = temp->value;
       return ref;
   }
 
@@ -1024,7 +938,7 @@ class Deque {
     for (size_type count = 0; count < pos; count++) {
         temp = temp->next;
     }
-    const_reference ref = &temp->value;
+    const_reference ref = temp->value;
     return ref;
   }
 
@@ -1037,7 +951,7 @@ class Deque {
     for (size_type count = 0; count < pos; count++) {
         temp = temp->next;
     }
-    reference ref = &temp->value;
+    reference ref = temp->value;
     return ref;
   }
 
@@ -1050,7 +964,7 @@ class Deque {
     for (size_type count = 0; count < pos; count++) {
         temp = temp->next;
     }
-    reference ref = &temp->value;
+    reference ref = temp->value;
     return ref;
   }
 
@@ -1058,32 +972,32 @@ class Deque {
   /// Calling front on an empty container is undefined.
   /// @return Reference to the first element
   reference front() {
-    reference ref = &this->head->value;
-    return ref
+    reference ref = this->head->value;
+    return ref;
   }
 
   /// @brief Returns a const reference to the first element in the container.
   /// Calling front on an empty container is undefined.
   /// @return Const reference to the first element
   const_reference front() const {
-    const_reference ref = &this->head->value;
-    return ref
+    const_reference ref = this->head->value;
+    return ref;
   }
 
   /// @brief Returns a reference to the last element in the container.
   /// Calling back on an empty container causes undefined behavior.
   /// @return Reference to the last element.
   reference back() {
-    reference ref = &this->tail->value;
-    return ref
+    reference ref = this->tail->value;
+    return ref;
   }
 
   /// @brief Returns a const reference to the last element in the container.
   /// Calling back on an empty container causes undefined behavior.
   /// @return Const Reference to the last element.
   const_reference back() const {
-    const_reference ref = &this->tail->value;
-    return ref
+    const_reference ref = this->tail->value;
+    return ref;
   }
 
   /// ITERATORS
@@ -1116,7 +1030,7 @@ class Deque {
   /// results in undefined behavior.
   /// @return Iterator to the element following the last element.
   iterator end() noexcept {
-    Node<iterator>* iter = tail;
+    iterator iter = tail;
     return iter->next;
   }
 
@@ -1125,8 +1039,8 @@ class Deque {
   /// access it results in undefined behavior.
   /// @return Constant Iterator to the element following the last element.
   const_iterator end() const noexcept {
-    Node<const_iterator>* iter = tail;
-    return iter->next;
+    const_iterator iter = tail;
+    return iter.data->next;
   }
 
   /// @brief Same to end()
@@ -1343,32 +1257,32 @@ class Deque {
   /// @param pos iterator to the element to remove
   /// @return Iterator following the last removed element.
   iterator erase(const_iterator pos) {
-      const_iterator posIter = this->cbegin();
+      iterator posIter = this->cbegin();
       while (posIter != pos) posIter++;
-      Node<const_iterator>* posNode(posIter);
-      if (posNode->prev != nullptr && posNode->next != null) {
-          Node<const_iterator>* beforeNode = posNode->prev;
-          Node<const_iterator>* nextNode = posNode->next;
+      Node<iterator>* posNode(posIter);
+      if (posNode->prev != nullptr && posNode->next != nullptr) {
+          Node<iterator>* beforeNode = posNode->prev;
+          Node<iterator>* nextNode = posNode->next;
           beforeNode->next = nextNode;
           nextNode->prev = beforeNode;
           delete posNode;
-          return nextNode;
+          return *nextNode->next;
       }
-      else if (posNode->prev == nullptr && posNode->next != null) {
-          Node<const_iterator>* nextNode = posNode->next;
+      else if (posNode->prev == nullptr && posNode->next != nullptr) {
+          Node<iterator>* nextNode = posNode->next;
           nextNode.prev = nullptr;
           delete posNode;
-          return nextNode->next;
+          return *nextNode->next->value;
       }
-      else if (posNode->prev != nullptr && posNode->next == null) {
-          Node<const_iterator>* beforeNode = posNode->prev;
+      else if (posNode->prev != nullptr && posNode->next == nullptr) {
+          Node<iterator>* beforeNode = posNode->prev;
           beforeNode.next = nullptr;
           delete posNode;
-          return beforeNode->next;
+          return *beforeNode->next->value;
       }
       else {
           delete posNode;
-          return nullptr;
+          return 0;
       }
   }
 
@@ -1389,13 +1303,13 @@ class Deque {
   void push_back(const T& value) {
       size_count++;
       if (tail != nullptr) {
-          Node<T&> temp = new Node<T&>(value);
+          Node<T>* temp = new Node<T>(value);
           temp.prev = tail;
           tail->next = temp;
           tail = temp;
       }
       else {
-          tail = new Node<T&>(value);
+          tail = new Node<T>(value);
           head = tail;
       }
   }
@@ -1406,13 +1320,13 @@ class Deque {
   void push_back(T&& value) {
       size_count++;
       if (tail != nullptr) {
-          Node<T&&> temp = new Node<T&&>(value);
-          temp.prev = tail;
+          Node<T>* temp = new Node<T>(value);
+          temp->prev = tail;
           tail->next = temp;
           tail = temp;
       }
       else {
-          tail = new Node<T&&>(value);
+          tail = new Node<T>(value);
           head = tail;
       }
   }
@@ -1438,13 +1352,13 @@ class Deque {
   void push_front(const T& value) {
       size_count++;
       if (head != nullptr) {
-          Node<T&> temp = new Node<T&>(value);
+          Node<T>* temp = new Node<T>(value);
           temp->next = head;
           head->prev = temp;
           head = temp;
       }
       else {
-          head = new Node<T&>(value);
+          head = new Node<T>(value);
           tail = head;
       }
   }
@@ -1454,13 +1368,13 @@ class Deque {
   void push_front(T&& value) {
       size_count++;
       if (head != nullptr) {
-          Node<T&&> temp = new Node<T&&>(value);
+          Node<T>* temp = new Node<T>(value);
           temp->next = head;
           head->prev = temp;
           head = temp;
       }
       else {
-          head = new Node<T&&>(value);
+          head = new Node<T>(value);
           tail = head;
       }
   }
@@ -1531,7 +1445,7 @@ class Deque {
   friend bool operator==(const Deque<U, Alloc>& lhs,
       const Deque<U, Alloc>& rhs) {
       if (lhs.size_count != rhs.size_count) return false;
-      for (auto liter = lhs.begin(), auto riter = rhs.begin(); liter != lhs.end() && riter != lhs.end(); liter++, riter++) {
+      for (auto liter = lhs.begin(), riter = rhs.begin(); liter != lhs.end() && riter != lhs.end(); liter++, riter++) {
           if (*liter != *riter) return false;
       }
       return true;
@@ -1543,7 +1457,7 @@ class Deque {
   friend bool operator!=(const Deque<U, Alloc>& lhs,
       const Deque<U, Alloc>& rhs) {
       if (lhs.size_count != rhs.size_count) return true;
-      for (auto liter = lhs.begin(), auto riter = rhs.begin(); liter != lhs.end() && riter != lhs.end(); liter++, riter++) {
+      for (auto liter = lhs.begin(), riter = rhs.begin(); liter != lhs.end() && riter != lhs.end(); liter++, riter++) {
           if (*liter != *riter) return true;
       }
       return false;
@@ -1554,7 +1468,7 @@ class Deque {
   template <class U, class Alloc>
   friend bool operator>(const Deque<U, Alloc>& lhs, const Deque<U, Alloc>& rhs) {
       if (lhs.size_count < rhs.size_count) return false;
-      for (auto liter = lhs.begin(), auto riter = rhs.begin(); liter != lhs.end() && riter != lhs.end(); liter++, riter++) {
+      for (auto liter = lhs.begin(), riter = rhs.begin(); liter != lhs.end() && riter != lhs.end(); liter++, riter++) {
           if (*liter <= *riter) return false;
       }
       return true;
@@ -1565,7 +1479,7 @@ class Deque {
   template <class U, class Alloc>
   friend bool operator<(const Deque<U, Alloc>& lhs, const Deque<U, Alloc>& rhs) {
       if (lhs.size_count > rhs.size_count) return false;
-      for (auto liter = lhs.begin(), auto riter = rhs.begin(); liter != lhs.end() && riter != lhs.end(); liter++, riter++) {
+      for (auto liter = lhs.begin(), riter = rhs.begin(); liter != lhs.end() && riter != lhs.end(); liter++, riter++) {
           if (*liter >= *riter) return false;
       }
       return true;
@@ -1577,7 +1491,7 @@ class Deque {
   friend bool operator>=(const Deque<U, Alloc>& lhs,
       const Deque<U, Alloc>& rhs) {
       if (lhs.size_count < rhs.size_count) return false;
-      for (auto liter = lhs.begin(), auto riter = rhs.begin(); liter != lhs.end() && riter != lhs.end(); liter++, riter++) {
+      for (auto liter = lhs.begin(), riter = rhs.begin(); liter != lhs.end() && riter != lhs.end(); liter++, riter++) {
           if (*liter < *riter) return false;
       }
       return true;
@@ -1589,7 +1503,7 @@ class Deque {
   friend bool operator<=(const Deque<U, Alloc>& lhs,
       const Deque<U, Alloc>& rhs) {
       if (lhs.size_count > rhs.size_count) return false;
-      for (auto liter = lhs.begin(), auto riter = rhs.begin(); liter != lhs.end() && riter != lhs.end(); liter++, riter++) {
+      for (auto liter = lhs.begin(), riter = rhs.begin(); liter != lhs.end() && riter != lhs.end(); liter++, riter++) {
           if (*liter > *riter) return false;
       }
       return true;
@@ -1599,8 +1513,8 @@ class Deque {
   private:
       Node<T>* head;
       Node<T>* tail;
-      size_type* size_count = 0;
-      Allocator alloc = new Allocator();
+      size_type size_count = 0;
+      allocator_type alloc;
 };
 
 /// NON-MEMBER FUNCTIONS
